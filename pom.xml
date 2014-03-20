@@ -35,7 +35,7 @@ TO PUBLISH SNAPSHOTS
   <groupId>no.priv.garshol.duke</groupId>
   <artifactId>duke</artifactId>
   <packaging>jar</packaging>
-  <version>1.3-SNAPSHOT</version>
+  <version>SR-1.3-SNAPSHOT</version>
   <name>Duke</name>
   <description>Duke is a configurable record linkage engine.</description>
   <url>https://github.com/larsga/Duke</url>
@@ -87,7 +87,7 @@ TO PUBLISH SNAPSHOTS
     </dependency>
 
     <!-- ===== SERVER DEPENDENCIES -->
-    
+
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>servlet-api</artifactId>
@@ -113,7 +113,7 @@ TO PUBLISH SNAPSHOTS
         <filtering>true</filtering>
       </resource>
     </resources>
-    
+
     <plugins>
       <!-- this plugin builds the duke.zip -->
       <plugin>
@@ -137,8 +137,8 @@ TO PUBLISH SNAPSHOTS
               <Implementation-Title>Duke</Implementation-Title>
               <Implementation-Version>${project.version}</Implementation-Version>
               <Implementation-Build>${buildNumber}</Implementation-Build>
-            </manifestEntries>    
-            </archive>      
+            </manifestEntries>
+            </archive>
         </configuration>
       </plugin>
 
@@ -196,7 +196,7 @@ TO PUBLISH SNAPSHOTS
             </goals>
           </execution>
         </executions>
-      </plugin>      
+      </plugin>
 
       <!-- so we can get coverage reports now that Cobertura no longer works-->
       <plugin>
@@ -239,7 +239,7 @@ TO PUBLISH SNAPSHOTS
               </goals>
             </execution>
           </executions>
-        </plugin>      
+        </plugin>
 
         <!-- generating sources.jar (for sonatype) -->
         <plugin>
@@ -255,7 +255,7 @@ TO PUBLISH SNAPSHOTS
             </execution>
           </executions>
         </plugin>
-        
+
         <!-- generating javadoc.jar (for sonatype) -->
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -282,15 +282,15 @@ TO PUBLISH SNAPSHOTS
           <name>skipTests</name>
           <value>true</value>
         </property>
-      </activation>      
+      </activation>
     </profile>
   </profiles>
-  
+
   <!-- this is necessary to get the buildnumber plugin to work -->
   <scm>
-    <connection>scm:git:git@github.com:larsga/Duke.git</connection>
-    <developerConnection>scm:git:git@github.com:larsga/Duke.git</developerConnection>
-    <url>https://github.com/larsga/Duke</url>
+    <connection>scm:git:git@github.com:sobol/Duke.git</connection>
+    <developerConnection>scm:git:git@github.com:sobol/Duke.git</developerConnection>
+    <url>https://github.com/sobol/Duke</url>
   </scm>
 
   <!-- the below is included because Sonatype hosting requires it -->
@@ -301,7 +301,7 @@ TO PUBLISH SNAPSHOTS
       <distribution>repo</distribution>
     </license>
   </licenses>
-  
+
   <developers>
     <developer>
       <id>larsga</id>
@@ -316,9 +316,17 @@ TO PUBLISH SNAPSHOTS
     </developer>
   </developers>
 
-  <parent>
-    <groupId>org.sonatype.oss</groupId>
-    <artifactId>oss-parent</artifactId>
-    <version>7</version>
-  </parent>
+
+  <distributionManagement>
+      <repository>
+          <id>releases.repo</id>
+          <name>SmartRecruiters Releases</name>
+          <url>http://maven.sr/content/repositories/releases/</url>
+      </repository>
+      <snapshotRepository>
+          <id>snapshots.repo</id>
+          <name>SmartRecruiters Releases</name>
+          <url>http://maven.sr/content/repositories/snapshots/</url>
+      </snapshotRepository>
+  </distributionManagement>
 </project>
