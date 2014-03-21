@@ -1,20 +1,16 @@
 
 package no.priv.garshol.duke;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.io.Writer;
-import java.io.PrintWriter;
-
+import no.priv.garshol.duke.matchers.AbstractMatchListener;
 import no.priv.garshol.duke.matchers.MatchListener;
 import no.priv.garshol.duke.matchers.PrintMatchListener;
-import no.priv.garshol.duke.matchers.AbstractMatchListener;
 import no.priv.garshol.duke.utils.Utils;
+
+import java.io.PrintWriter;
+import java.io.Writer;
+import java.util.*;
+import java.util.Comparator;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * The class that implements the actual deduplication and record
@@ -82,7 +78,7 @@ public class Processor {
       accprob[ix] = prob;
     }
   }
-  
+
   /**
    * Sets the logger to report to.
    */
@@ -111,7 +107,7 @@ public class Processor {
   public void addMatchListener(MatchListener listener) {
     listeners.add(listener);
   }
-  
+
   /**
    * Removes a listener from being notified of the processing events.
    * @since 1.1
@@ -165,7 +161,7 @@ public class Processor {
   public Profiler getProfiler() {
     return profiler;
   }
-  
+
   /**
    * Reads all available records from the data sources and processes
    * them in batches, notifying the listeners throughout.
@@ -181,7 +177,7 @@ public class Processor {
   public void deduplicate(int batch_size) {
     deduplicate(config.getDataSources(), batch_size);
   }
-  
+
   /**
    * Reads all available records from the data sources and processes
    * them in batches, notifying the listeners throughout.
@@ -189,7 +185,7 @@ public class Processor {
   public void deduplicate(Collection<DataSource> sources, int batch_size) {
     int count = 0;
     startProcessing();
-    
+
     Iterator<DataSource> it = sources.iterator();
     while (it.hasNext()) {
       DataSource source = it.next();
@@ -223,7 +219,7 @@ public class Processor {
 
     endProcessing();
   }
-  
+
   /**
    * Deduplicates a newly arrived batch of records. The records may
    * have been seen before.
@@ -231,15 +227,10 @@ public class Processor {
   public void deduplicate(Collection<Record> records) {
     logger.info("Deduplicating batch of " + records.size() + " records");
     batchReady(records.size());
-	  
+
     // prepare
-    long start = System.currentTimeMillis();
-    for (Record record : records)
-      database.index(record);
-	
-    database.commit();
-    indexing += System.currentTimeMillis() - start;
-	  
+    this.index(records);
+
     // then match
     match(records, true);
 
@@ -261,9 +252,9 @@ public class Processor {
       threads[ix] = new MatchThread(ix, records.size() / threads.length,
                                     matchall);
     int ix = 0;
-    for (Record record : records)      
+    for (Record record : records)
       threads[ix++ % threads.length].addRecord(record);
-      
+
     // kick off threads
     for (ix = 0; ix < threads.length; ix++)
       threads[ix].start();
@@ -311,14 +302,14 @@ public class Processor {
                    boolean matchall,
                    int batch_size) {
     startProcessing();
-    
+
     // first, index up group 1
     index(sources1, batch_size);
 
     // second, traverse group 2 to look for matches with group 1
     linkRecords(sources2, matchall, batch_size);
   }
-  
+
   /**
    * Retrieve new records from data sources, and match them to
    * previously indexed records. This method does <em>not</em> index
@@ -379,7 +370,7 @@ public class Processor {
     match(batch, matchall);
     batchDone();
   }
-  
+
   /**
    * Index all new records from the given data sources. This method
    * does <em>not</em> do any matching.
@@ -403,6 +394,29 @@ public class Processor {
     if (count % batch_size == 0)
       batchReady(count % batch_size);
     database.commit();
+  }
+
+  /**
+   * Index one record. This method
+   * does <em>not</em> do any matching.
+   * @since 1.3
+   */
+  public void index(Record record){
+    this.index(Collections.singleton(record));
+  }
+
+  /**
+   * Index all new records from the given collection. This method
+   * does <em>not</em> do any matching.
+   * @since 1.3
+   */
+  public void index(Collection<Record> records){
+    long start = System.currentTimeMillis();
+    for (Record record : records)
+      database.index(record);
+
+    database.commit();
+    indexing += System.currentTimeMillis() - start;
   }
 
   /**
@@ -440,10 +454,10 @@ public class Processor {
   // other, more advanced possibilities exist for record linkage, but
   // they are not implemented yet. see the links below for more
   // information.
-  
+
   // http://code.google.com/p/duke/issues/detail?id=55
   // http://research.microsoft.com/pubs/153478/msr-report-1to1.pdf
-  
+
   /**
    * Passes on all matches found.
    */
@@ -453,7 +467,7 @@ public class Processor {
     for (Record candidate : candidates) {
       if (isSameAs(record, candidate))
         continue;
-    	  
+
       double prob = compare(record, candidate);
       if (prob > config.getThreshold()) {
         found = true;
@@ -480,7 +494,7 @@ public class Processor {
     for (Record candidate : candidates) {
       if (isSameAs(record, candidate))
         continue;
-      
+
       double prob = compare(record, candidate);
       if (prob > max) {
         max = prob;
@@ -488,7 +502,7 @@ public class Processor {
       }
     }
 
-    // pass on the best match, if any 
+    // pass on the best match, if any
     if (max > config.getThreshold())
       registerMatch(record, best, max);
     else if (config.getMaybeThreshold() != 0.0 &&
@@ -497,7 +511,7 @@ public class Processor {
     else
       registerNoMatchFor(record);
   }
-  
+
   /**
    * Compares two records and returns the probability that they
    * represent the same real-world entity.
@@ -516,16 +530,16 @@ public class Processor {
       Collection<String> vs2 = r2.getValues(propname);
       if (vs1 == null || vs1.isEmpty() || vs2 == null || vs2.isEmpty())
         continue; // no values to compare, so skip
-      
+
       double high = 0.0;
       for (String v1 : vs1) {
         if (v1.equals("")) // FIXME: these values shouldn't be here at all
           continue;
-        
+
         for (String v2 : vs2) {
           if (v2.equals("")) // FIXME: these values shouldn't be here at all
             continue;
-        
+
           try {
             double p = prop.compare(v1, v2);
             high = Math.max(high, p);
@@ -548,7 +562,7 @@ public class Processor {
   public void close() {
     database.close();
   }
-  
+
   // ===== INTERNALS
 
   private boolean isSameAs(Record r1, Record r2) {
@@ -591,7 +605,7 @@ public class Processor {
       listener.batchDone();
     callbacks += (System.currentTimeMillis() - start);
   }
-  
+
   /**
    * Records the statement that the two records match.
    */
@@ -691,12 +705,12 @@ public class Processor {
       System.out.println(getDatabase());
       System.out.println("Threads: " + getThreads());
     }
-    
+
     public void batchReady(int size) {
       batch_start = System.currentTimeMillis();
       batch_size = size;
     }
-  
+
     public void batchDone() {
       records += batch_size;
       int rs = (int) ((1000.0 * batch_size) /
@@ -705,7 +719,7 @@ public class Processor {
                          " records/second; comparisons: " +
                          getComparisonCount());
     }
-    
+
     public void endProcessing() {
       long end = System.currentTimeMillis();
       double rs = (1000.0 * records) / (end - processing_start);
@@ -739,9 +753,9 @@ public class Processor {
     private String seconds(long ms) {
       return "" + (int) (ms / 1000);
     }
-    
+
     private String percent(long ms, long total) {
       return "" + (int) ((double) (ms * 100) / (double) total);
     }
-  }  
+  }
 }
