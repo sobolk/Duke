@@ -44,14 +44,14 @@ TO PUBLISH SNAPSHOTS
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-core</artifactId>
-      <version>4.0.0</version>
+      <version>4.3.0</version>
     </dependency>
 
     <!-- necessary to get KeywordAnalyzer and StandardAnalyzer -->
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-analyzers-common</artifactId>
-      <version>4.0.0</version>
+      <version>4.3.0</version>
     </dependency>
 
     <!-- necessary for spatial searches
@@ -60,7 +60,7 @@ TO PUBLISH SNAPSHOTS
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-spatial</artifactId>
-      <version>4.0.0</version>
+      <version>4.3.0</version>
     </dependency>
 
     <!-- only needed if you use the MapDBBlockingDatabase -->
@@ -68,6 +68,19 @@ TO PUBLISH SNAPSHOTS
       <groupId>org.mapdb</groupId>
       <artifactId>mapdb</artifactId>
       <version>0.9.9</version>
+    </dependency>
+
+    <!-- only needed if you use the SolrDatabase -->
+    <dependency>
+      <groupId>org.apache.solr</groupId>
+      <artifactId>solr-solrj</artifactId>
+      <version>4.3.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-logging</groupId>
+      <artifactId>commons-logging</artifactId>
+      <version>1.1.1</version>
     </dependency>
 
     <!-- ===== TEST DEPENDENCIES -->
@@ -83,6 +96,14 @@ TO PUBLISH SNAPSHOTS
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
       <version>1.3.154</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- only needed if you use the SolrDatabase -->
+    <dependency>
+      <groupId>org.apache.solr</groupId>
+      <artifactId>solr-core</artifactId>
+      <version>4.3.0</version>
       <scope>test</scope>
     </dependency>
 
