@@ -1,11 +1,38 @@
 package no.priv.garshol.duke.utils;
 
+import no.priv.garshol.duke.ConfigLoader;
 import no.priv.garshol.duke.Configuration;
 import no.priv.garshol.duke.Property;
 import no.priv.garshol.duke.comparators.GeopositionComparator;
+import org.apache.commons.io.IOUtils;
+import org.xml.sax.SAXException;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class SolrConfigGenerator {
   private final Configuration config;
+
+  public static void main(String[] args) throws IOException, SAXException {
+
+    if (args.length != 1) {
+      System.out.println("Please provide path to schema xml");
+      return;
+    }
+
+    Configuration configuration = ConfigLoader.load(args[0]);
+
+    SolrConfigGenerator configGenerator = new SolrConfigGenerator(configuration);
+    FileOutputStream fileOutputStream = new FileOutputStream("schema.xml");
+    IOUtils.write(configGenerator.generateSchema(), fileOutputStream);
+    fileOutputStream.flush();
+    fileOutputStream.close();
+    fileOutputStream = new FileOutputStream("solrconfig.xml");
+    IOUtils.write(configGenerator.generateSolrConfig(), fileOutputStream);
+    fileOutputStream.flush();
+    fileOutputStream.close();
+
+  }
 
 
   public SolrConfigGenerator(Configuration config) {

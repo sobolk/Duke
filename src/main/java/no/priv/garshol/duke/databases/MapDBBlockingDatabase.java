@@ -1,27 +1,18 @@
 
 package no.priv.garshol.duke.databases;
 
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.io.File;
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.io.Serializable;
-
+import no.priv.garshol.duke.CompactRecord;
+import no.priv.garshol.duke.Filter;
+import no.priv.garshol.duke.Property;
+import no.priv.garshol.duke.Record;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
 
-import no.priv.garshol.duke.Record;
-import no.priv.garshol.duke.Property;
-import no.priv.garshol.duke.Database;
-import no.priv.garshol.duke.Configuration;
-import no.priv.garshol.duke.CompactRecord;
+import java.io.*;
+import java.util.Collection;
+import java.util.Map;
+import java.util.NavigableMap;
 
 // FIXME:
 //  - is a mapdb-based link database a good idea?
@@ -46,7 +37,7 @@ public class MapDBBlockingDatabase extends AbstractBlockingDatabase {
   private boolean compression;
   private boolean snapshot;
   private boolean notxn;
-  
+
   public MapDBBlockingDatabase() {
     super();
     this.cache_size = 32768; // MapDB default
@@ -62,7 +53,7 @@ public class MapDBBlockingDatabase extends AbstractBlockingDatabase {
   public void setOverwrite(boolean overwrite) {
     this.overwrite = overwrite;
   }
-  
+
   /**
    * Sets the size of the MapDB instance cache. Bigger values give
    * better speed, but require more memory. Default is 32768.
@@ -85,14 +76,14 @@ public class MapDBBlockingDatabase extends AbstractBlockingDatabase {
   public void setCompression(boolean compression) { this.compression = compression; }
   public void setSnapshot(boolean snapshot) { this.snapshot = snapshot; }
   public void setNotxn(boolean notxn) { this.notxn = notxn; }
-  
+
   public void index(Record record) {
     if (db == null)
       init();
 
     // is there a previous version of this record? if so, remove it
     String id = getId(record);
-    if (!overwrite && file != null) {      
+    if (!overwrite && file != null) {
       Record old = findRecordById(id);
       if (old != null) {
         for (KeyFunction keyfunc : functions) {
@@ -104,7 +95,7 @@ public class MapDBBlockingDatabase extends AbstractBlockingDatabase {
         }
       }
     }
-    
+
     indexById(record);
 
     // index by key
@@ -125,12 +116,18 @@ public class MapDBBlockingDatabase extends AbstractBlockingDatabase {
     return idmap.get(id);
   }
 
+  public Collection<Record> findCandidateMatches(Record record,Collection<Filter> filters) {
+    if (db == null)
+      init();
+    return super.findCandidateMatches(record,filters);
+  }
+
   public Collection<Record> findCandidateMatches(Record record) {
     if (db == null)
       init();
     return super.findCandidateMatches(record);
   }
-  
+
   public boolean isInMemory() {
     return file == null;
   }
@@ -139,12 +136,12 @@ public class MapDBBlockingDatabase extends AbstractBlockingDatabase {
     // having commit here slows things down considerably, probably
     // because it forces writes.
   }
-  
+
   public void close() {
     db.commit();
     db.close();
   }
-  
+
   public String toString() {
     return "MapDBBlockingDatabase window_size=" + window_size +
       ", cache_size=" + cache_size + ", in-memory=" + isInMemory() + "\n  " +
@@ -178,14 +175,14 @@ public class MapDBBlockingDatabase extends AbstractBlockingDatabase {
       }
       if (mmap)
         maker = maker.mmapFileEnableIfSupported();
-      if (compression) 
+      if (compression)
         maker = maker.compressionEnable();
       if (snapshot)
         maker = maker.snapshotEnable();
       if (notxn)
         maker = maker.transactionDisable();
     }
-    
+
     db = maker.make();
 
     if (!db.exists("idmap"))
@@ -217,7 +214,7 @@ public class MapDBBlockingDatabase extends AbstractBlockingDatabase {
       candidates.add(idmap.get(ids[ix]));
     return ix;
   }
-  
+
   protected NavigableMap makeMap(KeyFunction keyfunc) {
     if (db == null)
       init();
@@ -229,10 +226,10 @@ public class MapDBBlockingDatabase extends AbstractBlockingDatabase {
         .make();
     else
       return db.getTreeMap(name);
-  } 
-  
+  }
+
   // --- BLOCK CONTAINER
-  
+
   public static class Block implements Serializable {
     private int free;
     private String[] ids;
@@ -245,7 +242,7 @@ public class MapDBBlockingDatabase extends AbstractBlockingDatabase {
       this.free = free;
       this.ids = ids;
     }
-    
+
     public String[] getIds() {
       return ids;
     }
@@ -299,7 +296,7 @@ public class MapDBBlockingDatabase extends AbstractBlockingDatabase {
 
     public int fixedSize() {
       return -1;
-    }    
+    }
   }
 
   static class RecordSerializer implements Serializable, Serializer<CompactRecord> {
@@ -321,6 +318,6 @@ public class MapDBBlockingDatabase extends AbstractBlockingDatabase {
 
     public int fixedSize() {
       return -1;
-    }    
+    }
   }
 }

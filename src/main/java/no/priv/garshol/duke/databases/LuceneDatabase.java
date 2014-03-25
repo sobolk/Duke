@@ -1,19 +1,13 @@
-
 package no.priv.garshol.duke.databases;
 
-import no.priv.garshol.duke.DukeConfigException;
-import no.priv.garshol.duke.DukeException;
-import no.priv.garshol.duke.Property;
-import no.priv.garshol.duke.Record;
+import no.priv.garshol.duke.*;
 import no.priv.garshol.duke.comparators.GeopositionComparator;
 import no.priv.garshol.duke.utils.Utils;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.index.*;
+import org.apache.lucene.search.*;
 import org.apache.lucene.search.Filter;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.NIOFSDirectory;
@@ -23,6 +17,7 @@ import org.apache.lucene.util.Version;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -42,8 +37,6 @@ public class LuceneDatabase extends IndexerDatabase {
   public LuceneDatabase() {
     this.maintracker = new LuceneEstimateResultTracker();
   }
-
-
 
 
   /**
@@ -85,7 +78,7 @@ public class LuceneDatabase extends IndexerDatabase {
       Property prop = config.getPropertyByName(propname);
       if (prop == null)
         throw new DukeConfigException("Record has property " + propname +
-                                      " for which there is no configuration");
+            " for which there is no configuration");
 
       if (prop.getComparator() instanceof GeopositionComparator &&
           geoprop != null) {
@@ -101,7 +94,7 @@ public class LuceneDatabase extends IndexerDatabase {
 
         // this preserves the coordinates in readable form for display purposes
         doc.add(new Field(propname, v, Field.Store.YES,
-                          Field.Index.NOT_ANALYZED));
+            Field.Index.NOT_ANALYZED));
       } else {
         Field.Index ix;
         if (prop.isIdProperty())
@@ -184,8 +177,8 @@ public class LuceneDatabase extends IndexerDatabase {
 
   public String toString() {
     return "LuceneDatabase, max-search-hits: " + max_search_hits +
-      ", min-relevance: " + min_relevance + ", fuzzy=" + fuzzy_search +
-      "\n  " + directory;
+        ", min-relevance: " + min_relevance + ", fuzzy=" + fuzzy_search +
+        "\n  " + directory;
   }
 
   // ----- INTERNALS
@@ -217,9 +210,9 @@ public class LuceneDatabase extends IndexerDatabase {
         }
 
         IndexWriterConfig cfg =
-          new IndexWriterConfig(Version.LUCENE_CURRENT, analyzer);
+            new IndexWriterConfig(Version.LUCENE_CURRENT, analyzer);
         cfg.setOpenMode(overwrite ? IndexWriterConfig.OpenMode.CREATE :
-                                    IndexWriterConfig.OpenMode.APPEND);
+            IndexWriterConfig.OpenMode.APPEND);
         iwriter = new IndexWriter(directory, cfg);
         iwriter.commit(); // so that the searcher doesn't fail
       } catch (IndexNotFoundException e) {
@@ -241,12 +234,21 @@ public class LuceneDatabase extends IndexerDatabase {
   }
 
 
-
-
-
-  class LuceneEstimateResultTracker extends  EstimateResultTracker<ScoreDoc>{
+  class LuceneEstimateResultTracker extends EstimateResultTracker<ScoreDoc> {
     @Override
-    protected List<ScoreDoc> executeQuery(Query query, Filter filter, int limit) throws Exception {
+    protected List<ScoreDoc> executeQuery(Query query, Filter filter, int limit, Collection<no.priv.garshol.duke.Filter> filters) throws Exception {
+      if(filters!=null &&!filters.isEmpty()){
+        BooleanQuery booleanQuery = new BooleanQuery();
+        if(query instanceof BooleanQuery){
+          booleanQuery = (BooleanQuery) query;
+        } else {
+          booleanQuery.add(query, BooleanClause.Occur.MUST);
+        }
+        for(no.priv.garshol.duke.Filter myFilter:filters){
+          parseTokens(booleanQuery,myFilter.getProp(),myFilter.getValue(),true);
+        }
+        query = booleanQuery;
+      }
       return Arrays.asList(searcher.search(query, filter, limit).scoreDocs);
     }
 

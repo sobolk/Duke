@@ -7,7 +7,7 @@ import java.util.Collection;
  * Used to store and index records for later matching.
  */
 public interface Database {
-  
+
   /**
    * Returns true iff the database is held entirely in memory, and
    * thus is not persistent.
@@ -35,7 +35,13 @@ public interface Database {
    * thread-safe.
    */
   public Collection<Record> findCandidateMatches(Record record);
-  
+
+  /**
+   * Look up potentially matching records. This method must be
+   * thread-safe.
+   */
+  public Collection<Record> findCandidateMatches(Record record,Collection<Filter> filters);
+
   /**
    * Stores state to disk and closes all open resources.
    */

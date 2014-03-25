@@ -15,13 +15,13 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrInputDocument;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 public class SolrDatabase extends IndexerDatabase {
 
   private String url;
   private SolrServer solrServer;
-
 
 
   public SolrDatabase() {
@@ -138,11 +138,18 @@ public class SolrDatabase extends IndexerDatabase {
   class SolrEstimateResultTracker extends EstimateResultTracker<SolrDocument> {
 
     @Override
-    protected List<SolrDocument> executeQuery(Query query, Filter filter, int limit) throws Exception {
+    protected List<SolrDocument> executeQuery(Query query, Filter filter, int limit, Collection<no.priv.garshol.duke.Filter> filters) throws Exception {
       SolrQuery solrQuery = new SolrQuery(query.toString());
       solrQuery.addField("*");
       solrQuery.addField("score");
       solrQuery.setRows(limit);
+
+      if (filters != null) {
+        for (no.priv.garshol.duke.Filter myFilter : filters) {
+          solrQuery.addFilterQuery(myFilter.getProp() + ":" + "\"" + myFilter.getValue() + "\"");
+        }
+      }
+
       return solrServer.query(solrQuery).getResults();
     }
 

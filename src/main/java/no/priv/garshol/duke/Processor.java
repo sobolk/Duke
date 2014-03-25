@@ -426,7 +426,7 @@ public class Processor {
     return comparisons;
   }
 
-  private void match(Record record, boolean matchall) {
+  public void match(Record record, boolean matchall) {
     long start = System.currentTimeMillis();
     Collection<Record> candidates = database.findCandidateMatches(record);
     searching += System.currentTimeMillis() - start;

@@ -1,30 +1,24 @@
 
 package no.priv.garshol.duke.test;
 
-import java.util.List;
+import no.priv.garshol.duke.*;
+import no.priv.garshol.duke.comparators.ExactComparator;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.io.IOException;
+import java.util.List;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.Ignore;
-import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.assertEquals;
-
-import no.priv.garshol.duke.Record;
-import no.priv.garshol.duke.Property;
-import no.priv.garshol.duke.Database;
-import no.priv.garshol.duke.PropertyImpl;
-import no.priv.garshol.duke.Configuration;
-import no.priv.garshol.duke.ConfigurationImpl;
-import no.priv.garshol.duke.comparators.ExactComparator;
+import static junit.framework.Assert.assertTrue;
 
 public abstract class DatabaseTest {
   protected Database db;
   protected ConfigurationImpl config;
-  
+
   @Before
   public void setup() throws IOException {
     ExactComparator comp = new ExactComparator();
@@ -43,7 +37,7 @@ public abstract class DatabaseTest {
   // overridden to create specific databases
   public abstract Database createDatabase(Configuration config)
     throws IOException;
-  
+
   @Test
   public void testTrivial() throws IOException {
     Record record = TestUtils.makeRecord("ID", "1", "NAME", "AND", "EMAIL", "BBBBB");
@@ -67,7 +61,7 @@ public abstract class DatabaseTest {
     Record record2 = TestUtils.makeRecord("NAME", "\"lastname, firstname \\(external\\)\"");
     db.findCandidateMatches(record2);
   }
-  
+
   @Test
   public void testBNode() throws IOException {
     Record record = TestUtils.makeRecord("ID", "_:RHUKdfPM299", "NAME", "AND", "EMAIL", "BBBBB");
@@ -78,7 +72,7 @@ public abstract class DatabaseTest {
     assertTrue("no record found", record != null);
     assertEquals("wrong ID", "_:RHUKdfPM299", record.getValue("ID"));
   }
-  
+
   @Test
   public void testURI() throws IOException {
     Record record = TestUtils.makeRecord("ID", "http://norman.walsh.name/knows/who/robin-berjon", "NAME", "AND", "EMAIL", "BBBBB");
@@ -90,7 +84,7 @@ public abstract class DatabaseTest {
     assertEquals("wrong ID", "http://norman.walsh.name/knows/who/robin-berjon",
                  record.getValue("ID"));
   }
-  
+
   @Test
   public void testTrivialFind() throws IOException {
     Record record = TestUtils.makeRecord("ID", "1", "NAME", "AND", "EMAIL", "BBBBB");
@@ -101,7 +95,23 @@ public abstract class DatabaseTest {
     assertEquals("no record found", 1, cands.size());
     assertEquals("wrong ID", "1", cands.iterator().next().getValue("ID"));
   }
-  
+
+  @Test
+  public void testTrivialFilters() throws IOException {
+    Record record = TestUtils.makeRecord("ID", "1", "NAME", "STEFAN", "EMAIL", "BBBBB");
+    db.index(record);
+    record = TestUtils.makeRecord("ID", "2", "NAME", "STEFAN", "EMAIL", "CCCCC");
+    db.index(record);
+    db.commit();
+
+    Collection<Record> cands = db.findCandidateMatches(
+        record,
+        Collections.singleton(new Filter("EMAIL","CCCCC"))
+    );
+    assertEquals("no record found", 1, cands.size());
+    assertEquals("wrong ID", "2", cands.iterator().next().getValue("ID"));
+  }
+
   @Test
   public void testRecordImplementation() throws IOException {
     Record record = TestUtils.makeRecord("ID", "1", "NAME", "AND", "EMAIL", "BBBBB");
@@ -119,5 +129,5 @@ public abstract class DatabaseTest {
     assertTrue("no NAME", props.contains("NAME"));
     assertTrue("no EMAIL", props.contains("EMAIL"));
   }
-  
+
 }

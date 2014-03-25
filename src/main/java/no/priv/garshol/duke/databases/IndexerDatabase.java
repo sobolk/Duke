@@ -9,6 +9,7 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
+import org.apache.lucene.search.Filter;
 import org.apache.lucene.util.Version;
 
 import java.io.IOException;
@@ -159,19 +160,26 @@ public abstract class IndexerDatabase implements Database {
 
   public Collection<Record> lookup(Property property, String value) {
     Query query = parseTokens(property.getName(), value);
-    return maintracker.doQuery(query);
+    return maintracker.doQuery(query,null);
   }
 
   /**
    * Look up potentially matching records.
    */
-  public Collection<Record> findCandidateMatches(Record record) {
+  public Collection<Record> findCandidateMatches(Record record){
+    return findCandidateMatches(record,null);
+  }
+
+  /**
+   * Look up potentially matching records.
+   */
+  public Collection<Record> findCandidateMatches(Record record, Collection<no.priv.garshol.duke.Filter> filters) {
     // if we have a geoprop it means that's the only way to search
     if (geoprop != null) {
       String value = record.getValue(geoprop.getName());
       if (value != null) {
         Filter filter = geoprop.geoSearch(value);
-        return maintracker.doQuery(new MatchAllDocsQuery(), filter);
+        return maintracker.doQuery(new MatchAllDocsQuery(), filter, filters);
       }
     }
 
@@ -188,7 +196,7 @@ public abstract class IndexerDatabase implements Database {
     }
 
     // do the query
-    return maintracker.doQuery(query);
+    return maintracker.doQuery(query,filters);
   }
 
   protected void init(){
@@ -252,18 +260,19 @@ public abstract class IndexerDatabase implements Database {
       this.prevsizes = new int[10];
     }
 
-    public Collection<Record> doQuery(Query query) {
-      return doQuery(query, null);
+    public Collection<Record> doQuery(Query query,Collection<no.priv.garshol.duke.Filter> filters) {
+      return doQuery(query, null,filters);
     }
 
-    public Collection<Record> doQuery(Query query, Filter filter) {
+    public Collection<Record> doQuery(Query query, Filter filter,Collection<no.priv.garshol.duke.Filter> filters) {
       List<Record> matches;
+
       try {
         List<T> hits;
 
         int thislimit = Math.min(limit, max_search_hits);
         while (true) {
-          hits = executeQuery(query,filter,thislimit);
+          hits = executeQuery(query,filter,thislimit,filters);
           if (hits.size() < thislimit || thislimit == max_search_hits)
             break;
           thislimit = thislimit * 5;
@@ -299,7 +308,7 @@ public abstract class IndexerDatabase implements Database {
     }
 
 
-    protected abstract List<T> executeQuery(Query query, Filter filter, int limit) throws Exception;
+    protected abstract List<T> executeQuery(Query query, Filter filter, int limit, Collection<no.priv.garshol.duke.Filter> filters) throws Exception;
     protected abstract double score(T hit);
     protected abstract Record toRecord(T hit) throws Exception;
   }

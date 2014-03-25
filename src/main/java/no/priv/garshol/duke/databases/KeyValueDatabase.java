@@ -1,19 +1,12 @@
 
 package no.priv.garshol.duke.databases;
 
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-
-import no.priv.garshol.duke.Record;
-import no.priv.garshol.duke.Property;
-import no.priv.garshol.duke.Database;
-import no.priv.garshol.duke.Configuration;
+import no.priv.garshol.duke.*;
 import no.priv.garshol.duke.utils.StringUtils;
+
+import java.util.*;
+
+import static no.priv.garshol.duke.Filter.filter;
 
 /**
  * A database that uses a key-value store to index and find records.
@@ -33,7 +26,7 @@ public class KeyValueDatabase implements Database {
 
   // buckets that have more elements than candidates.size * CF2 are ignored
   private static final int CUTOFF_FACTOR_2 = 50;
-  
+
   public KeyValueDatabase() {
     this.store = new InMemoryKeyValueStore();
     this.max_search_hits = 1000000;
@@ -53,7 +46,7 @@ public class KeyValueDatabase implements Database {
   public void setMinRelevance(float min_relevance) {
     this.min_relevance = min_relevance;
   }
-  
+
   /**
    * Returns true iff the database is held entirely in memory, and
    * thus is not persistent.
@@ -71,7 +64,7 @@ public class KeyValueDatabase implements Database {
     // allocate an ID for this record
     long id = store.makeNewRecordId();
     store.registerRecord(id, record);
-    
+
     // go through ID properties and register them
     for (Property p : config.getIdentityProperties())
       for (String extid : record.getValues(p.getName()))
@@ -99,20 +92,27 @@ public class KeyValueDatabase implements Database {
    * Look up potentially matching records.
    */
   public Collection<Record> findCandidateMatches(Record record) {
+    return findCandidateMatches(record,null);
+  }
+
+  /**
+   * Look up potentially matching records.
+   */
+  public Collection<Record> findCandidateMatches(Record record,Collection<Filter> filters) {
     if (DEBUG)
       System.out.println("---------------------------------------------------------------------------");
-    
+
     // do lookup on all tokens from all lookup properties
     // (we only identify the buckets for now. later we decide how to process
     // them)
     List<Bucket> buckets = lookup(record);
-    
+
     // preprocess the list of buckets
     Collections.sort(buckets);
     double score_sum = 0.0;
     for (Bucket b : buckets)
       score_sum += b.getScore();
-      
+
     double score_so_far = 0.0;
     int threshold = buckets.size() - 1;
     for (; (score_so_far / score_sum) < min_relevance; threshold--) {
@@ -126,7 +126,7 @@ public class KeyValueDatabase implements Database {
     threshold++;
     if (DEBUG)
       System.out.println("Threshold: " + threshold);
-    
+
     // the collection of candidates
     Map<Long, Score> candidates = new HashMap();
 
@@ -140,7 +140,7 @@ public class KeyValueDatabase implements Database {
 
     if (DEBUG)
       System.out.println("candidates: " + candidates.size());
-    
+
     // if the cutoff properties are not set we can stop right here
     // FIXME: it's possible to make this a lot cleaner
     if (max_search_hits > candidates.size() && min_relevance == 0.0) {
@@ -149,9 +149,9 @@ public class KeyValueDatabase implements Database {
         cands.add(store.findRecordById(id));
       if (DEBUG)
         System.out.println("final: " + cands.size());
-      return cands;
+      return filter(cands,filters);
     }
-    
+
     // flatten candidates into an array, prior to sorting etc
     int ix = 0;
     Score[] scores = new Score[candidates.size()];
@@ -180,6 +180,8 @@ public class KeyValueDatabase implements Database {
         records.add(store.findRecordById(s.id));
     }
 
+    records = filter(records,filters);
+
     if (DEBUG)
       System.out.println("final: " + records.size());
     return records;
@@ -192,7 +194,7 @@ public class KeyValueDatabase implements Database {
   public void commit() {
     store.commit();
   }
-  
+
   /**
    * Stores state to disk and closes all open resources.
    */
@@ -209,7 +211,7 @@ public class KeyValueDatabase implements Database {
    * Goes through the buckets from ix and out, checking for each
    * candidate if it's in one of the buckets, and if so, increasing
    * its score accordingly. No new candidates are added.
-   */ 
+   */
   private void bumpScores(Map<Long, Score> candidates,
                           List<Bucket> buckets,
                           int ix) {
@@ -222,8 +224,8 @@ public class KeyValueDatabase implements Database {
         if (b.contains(s.id))
           s.score += score;
     }
-  }  
-  
+  }
+
   /**
    * Goes through the first buckets, picking out candidate records and
    * tallying up their scores.
@@ -238,7 +240,7 @@ public class KeyValueDatabase implements Database {
       Bucket b = buckets.get(ix);
       long[] ids = b.records;
       double score = b.getScore();
-      
+
       for (int ix2 = 0; ix2 < b.nextfree; ix2++) {
         Score s = candidates.get(ids[ix2]);
         if (s == null) {
@@ -252,7 +254,7 @@ public class KeyValueDatabase implements Database {
     }
     return ix;
   }
-  
+
   /**
    * Tokenizes lookup fields and returns all matching buckets in the
    * index.
@@ -330,7 +332,7 @@ public class KeyValueDatabase implements Database {
       int left = (ix * 2) + 1;
       if (left >= size)
         return; // ix is a leaf, and there's nothing to be done
-      
+
       int right = left + 1;
       int largest = ix;
       if (scores[left].score > scores[ix].score)

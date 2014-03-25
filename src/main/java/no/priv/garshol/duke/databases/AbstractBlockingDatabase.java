@@ -1,17 +1,11 @@
-  
+
 package no.priv.garshol.duke.databases;
 
-import java.util.Map;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.NavigableMap;
+import no.priv.garshol.duke.*;
 
-import no.priv.garshol.duke.Record;
-import no.priv.garshol.duke.Property;
-import no.priv.garshol.duke.Database;
-import no.priv.garshol.duke.Configuration;
+import java.util.*;
+
+import static no.priv.garshol.duke.Filter.filter;
 
 /**
  * An abstract database using blocking to find candidate records. It
@@ -62,7 +56,7 @@ public abstract class AbstractBlockingDatabase implements Database {
   public Collection<KeyFunction> getKeyFunctions() {
     return functions;
   }
-  
+
   protected void indexById(Record record) {
     for (Property idprop : config.getIdentityProperties())
       for (String id : record.getValues(idprop.getName()))
@@ -73,9 +67,13 @@ public abstract class AbstractBlockingDatabase implements Database {
     return idmap.get(id);
   }
 
-  public Collection<Record> findCandidateMatches(Record record) {
+  public Collection<Record> findCandidateMatches(Record record){
+    return findCandidateMatches(record,null);
+  }
+
+  public Collection<Record> findCandidateMatches(Record record,Collection<Filter> filters) {
     Collection<Record> candidates = new HashSet(); //ArrayList();
-    
+
     for (KeyFunction keyfunc : functions) {
       NavigableMap<String, Object> blocks = getBlocks(keyfunc);
       String key = keyfunc.makeKey(record);
@@ -86,7 +84,7 @@ public abstract class AbstractBlockingDatabase implements Database {
       Map.Entry<String, Object> entry = start;
       if (start == null)
         continue;
-      
+
       // add all records from this block
       int added = addBlock(candidates, start);
       // System.out.println("entry '" + entry.getKey() + "' " + added);
@@ -117,15 +115,16 @@ public abstract class AbstractBlockingDatabase implements Database {
       }
     }
 
-    return candidates;
+    return filter(candidates,filters);
   }
+
 
   public void commit() {
   }
-  
+
   public void close() {
   }
-  
+
   public NavigableMap getBlocks(KeyFunction keyfunc) {
     NavigableMap map = func_to_map.get(keyfunc);
     if (map == null) {
@@ -142,6 +141,6 @@ public abstract class AbstractBlockingDatabase implements Database {
   // returns number of records added
   protected abstract int addBlock(Collection<Record> candidates,
                                   Map.Entry block);
-  
+
   protected abstract NavigableMap makeMap(KeyFunction keyfunc);
 }

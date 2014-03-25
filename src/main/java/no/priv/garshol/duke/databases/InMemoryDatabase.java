@@ -1,15 +1,10 @@
-
 package no.priv.garshol.duke.databases;
 
-import java.util.Map;
-import java.util.HashMap;
-import java.util.ArrayList;
-import java.util.Collection;
+import no.priv.garshol.duke.*;
 
-import no.priv.garshol.duke.Record;
-import no.priv.garshol.duke.Property;
-import no.priv.garshol.duke.Database;
-import no.priv.garshol.duke.Configuration;
+import java.util.*;
+
+import static no.priv.garshol.duke.Filter.filter;
 
 /**
  * Naïve in-memory store of records. Matches all records against all
@@ -19,7 +14,7 @@ public class InMemoryDatabase implements Database {
   private Configuration config;
   private Map<String, Record> idindex;
   private Collection<Record> records;
-  
+
   public InMemoryDatabase() {
     this.idindex = new HashMap();
     this.records = new ArrayList();
@@ -31,7 +26,7 @@ public class InMemoryDatabase implements Database {
 
   public void setOverwrite(boolean overwrite) {
   }
-  
+
   /**
    * Returns true iff the database is held entirely in memory, and
    * thus is not persistent.
@@ -48,7 +43,7 @@ public class InMemoryDatabase implements Database {
       Collection<String> values = record.getValues(p.getName());
       if (values == null)
         continue;
-      
+
       for (String id : values)
         idindex.put(id, record);
     }
@@ -66,8 +61,18 @@ public class InMemoryDatabase implements Database {
    * Look up potentially matching records.
    */
   public Collection<Record> findCandidateMatches(Record record) {
-    return records;
+    return findCandidateMatches(record, null);
   }
+
+  /**
+   * Look up potentially matching records.
+   */
+  public Collection<Record> findCandidateMatches(Record record, Collection<Filter> filters) {
+    return filter(records, filters);
+  }
+
+
+
 
   /**
    * Flushes all changes to disk. For in-memory databases this is a
@@ -75,7 +80,7 @@ public class InMemoryDatabase implements Database {
    */
   public void commit() {
   }
-  
+
   /**
    * Stores state to disk and closes all open resources.
    */
