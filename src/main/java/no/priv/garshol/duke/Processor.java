@@ -427,8 +427,12 @@ public class Processor {
   }
 
   public void match(Record record, boolean matchall) {
+    match(record,null,matchall);
+  }
+
+  public void match(Record record,Collection<Filter> filters, boolean matchall) {
     long start = System.currentTimeMillis();
-    Collection<Record> candidates = database.findCandidateMatches(record);
+    Collection<Record> candidates = database.findCandidateMatches(record,filters);
     searching += System.currentTimeMillis() - start;
     if (logger.isDebugEnabled())
       logger.debug("Matching record " +
