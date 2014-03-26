@@ -35,7 +35,7 @@ TO PUBLISH SNAPSHOTS
   <groupId>no.priv.garshol.duke</groupId>
   <artifactId>duke</artifactId>
   <packaging>jar</packaging>
-  <version>SR-1.3.2</version>
+  <version>SR-1.3.3</version>
   <name>Duke</name>
   <description>Duke is a configurable record linkage engine.</description>
   <url>https://github.com/larsga/Duke</url>

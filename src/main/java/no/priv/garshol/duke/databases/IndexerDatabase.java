@@ -102,9 +102,10 @@ public abstract class IndexerDatabase implements Database {
    */
   protected void parseTokens(BooleanQuery parent, String fieldName,
                              String value, boolean required) {
-    value = escapeLucene(value);
-    if (value.length() == 0)
+    if (value==null || value.length() == 0)
       return;
+    value = escapeLucene(value);
+
 
     try {
       TokenStream tokenStream =
@@ -129,19 +130,23 @@ public abstract class IndexerDatabase implements Database {
   }
 
   protected String escapeLucene(String query) {
-    char[] tmp = new char[query.length() * 2];
-    int count = 0;
-    for (int ix = 0; ix < query.length(); ix++) {
-      char ch = query.charAt(ix);
-      if (ch == '*' || ch == '?' || ch == '!' || ch == '&' || ch == '(' ||
-          ch == ')' || ch == '-' || ch == '+' || ch == ':' || ch == '"' ||
-          ch == '[' || ch == ']' || ch == '~' || ch == '{' || ch == '}' ||
-          ch == '^' || ch == '|')
-        tmp[count++] = '\\'; // these characters must be escaped
-      tmp[count++] = ch;
-    }
+    if(query!=null) {
+      char[] tmp = new char[query.length() * 2];
+      int count = 0;
+      for (int ix = 0; ix < query.length(); ix++) {
+        char ch = query.charAt(ix);
+        if (ch == '*' || ch == '?' || ch == '!' || ch == '&' || ch == '(' ||
+            ch == ')' || ch == '-' || ch == '+' || ch == ':' || ch == '"' ||
+            ch == '[' || ch == ']' || ch == '~' || ch == '{' || ch == '}' ||
+            ch == '^' || ch == '|')
+          tmp[count++] = '\\'; // these characters must be escaped
+        tmp[count++] = ch;
+      }
 
-    return new String(tmp, 0, count).trim();
+      return new String(tmp, 0, count).trim();
+    } else {
+      return null;
+    }
   }
 
 
