@@ -26,11 +26,15 @@ public class SolrDocumentRecord implements Record {
   }
 
   public String getValue(String prop) {
-    return doc.getFirstValue(prop).toString();
+    Object firstValue = doc.getFirstValue(prop);
+    return firstValue == null ? null : firstValue.toString();
   }
 
   public Collection<String> getValues(String prop) {
     Collection<Object> fieldValues = doc.getFieldValues(prop);
+    if (fieldValues == null) {
+      return null;
+    }
     if (fieldValues.size() == 1)
       return Collections.singleton(fieldValues.iterator().next().toString());
 
