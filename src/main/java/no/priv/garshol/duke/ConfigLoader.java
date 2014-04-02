@@ -1,35 +1,21 @@
 
 package no.priv.garshol.duke;
 
-import java.util.Set;
-import java.util.Map;
-import java.util.List;
-import java.util.HashSet;
-import java.util.HashMap;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.io.File;
-import java.io.InputStream;
-import java.io.IOException;
-import org.xml.sax.XMLReader;
+import no.priv.garshol.duke.cleaners.ChainedCleaner;
+import no.priv.garshol.duke.datasources.*;
+import no.priv.garshol.duke.utils.ObjectUtils;
+import no.priv.garshol.duke.utils.StringUtils;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.xml.sax.helpers.XMLReaderFactory;
+import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
+import org.xml.sax.helpers.XMLReaderFactory;
 
-import no.priv.garshol.duke.DukeConfigException;
-import no.priv.garshol.duke.utils.StringUtils;
-import no.priv.garshol.duke.utils.ObjectUtils;
-import no.priv.garshol.duke.cleaners.ChainedCleaner;
-import no.priv.garshol.duke.comparators.ExactComparator;
-import no.priv.garshol.duke.datasources.Column;
-import no.priv.garshol.duke.datasources.CSVDataSource;
-import no.priv.garshol.duke.datasources.ColumnarDataSource;
-import no.priv.garshol.duke.datasources.JDBCDataSource;
-import no.priv.garshol.duke.datasources.JNDIDataSource;
-import no.priv.garshol.duke.datasources.NTriplesDataSource;
-import no.priv.garshol.duke.datasources.SparqlDataSource;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.*;
 
 /**
  * Can read XML configuration files and return a fully set up configuration.
@@ -61,7 +47,7 @@ public class ConfigLoader {
     private ConfigurationImpl config;
     private List<Property> properties;
     private File path; // location of config file
-    
+
     private double low;
     private double high;
     private String name;
@@ -69,14 +55,14 @@ public class ConfigLoader {
     private boolean ignore_prop;
     private Comparator comparator;
     private Property.Lookup lookup;
-    
+
     private Set<String> keepers;
     private int groupno; // counts datasource groups
     private Map<String, Object> objects; // configured Java beans for reuse
     private DataSource datasource;
     private Object currentobj; // Java bean currently being configured by <param>
     private Database database;
-    
+
     private boolean keep;
     private StringBuffer content;
 
@@ -152,19 +138,20 @@ public class ConfigLoader {
           c.setSplitOn(spliton);
 
         ((ColumnarDataSource) datasource).addColumn(c);
-      } else if (localName.equals("param")) {        
+      } else if (localName.equals("param")) {
         String param = attributes.getValue("name");
         String value = attributes.getValue("value");
 
         if (currentobj == null)
           throw new DukeConfigException("Trying to set parameter " +
                                         param + " but no current object");
-        
+
         // we resolve file references relative to the config file location
         if (param.equals("input-file") && path != null &&
             !value.startsWith("/"))
           value = new File(path, value).getAbsolutePath();
-        
+
+
         ObjectUtils.setBeanProperty(currentobj, param, value, objects);
       } else if (localName.equals("group")) {
         groupno++;
@@ -176,7 +163,7 @@ public class ConfigLoader {
         else if (groupno == 3)
           throw new DukeConfigException("Record linkage mode only supports " +
                                         "two groups");
-        
+
       } else if (localName.equals("object")) {
         String klass = attributes.getValue("class");
         String name = attributes.getValue("name");
@@ -234,7 +221,7 @@ public class ConfigLoader {
         currentobj = null;
       else if (localName.equals("database"))
         config.setDatabase(database);
-      
+
       if (keepers.contains(localName))
         keep = false;
 
@@ -269,7 +256,7 @@ public class ConfigLoader {
         cleaner = (Cleaner) instantiate(name);
       return cleaner;
     }
-  }  
+  }
 
   private static Object instantiate(String classname) {
     try {

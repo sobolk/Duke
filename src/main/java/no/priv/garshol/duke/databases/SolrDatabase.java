@@ -69,11 +69,15 @@ public class SolrDatabase extends IndexerDatabase {
         throw new DukeConfigException("Record has property " + propName +
             " for which there is no configuration");
 
-      String v = record.getValue(propName);
-      if (v == null || v.equals(""))
-        continue;
+      Collection<String> values = record.getValues(propName);
+      if (values != null) {
+        for (String v : record.getValues(propName)) {
+          if (v == null || v.equals(""))
+            continue;
 
-      doc.addField(propName, v);
+          doc.addField(propName, v);
+        }
+      }
 
     }
 
