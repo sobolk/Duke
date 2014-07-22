@@ -86,6 +86,7 @@ public abstract class IndexerDatabase implements Database {
           Query termQuery = new TermQuery(new Term(fieldName, term));
           searchQuery.add(termQuery, BooleanClause.Occur.SHOULD);
         }
+        tokenStream.close();
       } catch (IOException e) {
         throw new DukeException("Error parsing input string '" + value + "' " +
             "in field " + fieldName);
@@ -123,6 +124,7 @@ public abstract class IndexerDatabase implements Database {
           termQuery = new TermQuery(new Term(fieldName, term));
         parent.add(termQuery, required ? BooleanClause.Occur.MUST : BooleanClause.Occur.SHOULD);
       }
+      tokenStream.close();
     } catch (IOException e) {
       throw new DukeException("Error parsing input string '" + value + "' " +
           "in field " + fieldName);
